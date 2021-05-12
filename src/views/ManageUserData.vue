@@ -1,48 +1,8 @@
 <template>
-  <div>
-    <!-- <h3>Manage User Data</h3>
-    <form @submit.prevent>
-      First Name:
-      <input
-        type="text"
-        placeholder="Enter first name.."
-        name="fname"
-        v-model="user.fname"
-      />
-      <br />
-      Last Name :
-      <input
-        type="text"
-        placeholder="Enter last lname.."
-        name="lname"
-        v-model="user.lname"
-      />
-      <br />
-      Age :
-      <input
-        type="number"
-        placeholder="Enter your age.."
-        name="age"
-        v-model="user.age"
-      />
-      <br />
-      <div>
-        <button @click="createDoc" class="btn btn-primary">Create</button>
-        <br />
-
-         <button @click="readData" class="btn btn-primary">Read Doc</button>
-         <br />
-         can call realTimeDoc(), cannot call a lifecycle method with click -->
-
-    <!-- <button type="button" class="btn btn-primary">MDB-Button</button> -->
-    <!-- </div>
-    </form> -->
-    <!-- 
-    <h3>Users List</h3>  -->
-
+  <div>  
     <v-data-table
       :headers="headers"
-      :items="usersArray"
+      :items="usersArray[1]"
       :items-per-page="5"
       class="elevation-1"
     >
@@ -129,19 +89,18 @@
         </v-toolbar>
       </template>
       <template v-slot:[`item.actions`]="{ item }">
-        <v-icon small class="mr-2" @click="editItem(item)"> mdi-pencil </v-icon>
+        <v-icon small class="mr-2" @click="getItemToEdit(item)"> mdi-pencil </v-icon>
         <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon>
       </template>
       <template v-slot:no-data>
         <v-btn color="primary" @click="initialize"> Reset </v-btn>
       </template>
-    </v-data-table>
+    </v-data-table>    
   </div>
 </template>
 
 <script>
 import { fstore } from "../firebase/firebase";
-
 export default {
   data: () => ({
     // formTitle = '',
@@ -173,34 +132,18 @@ export default {
       age: 0,
     },
   }),
-
-  mounted() {
-    // this.readData()
-   // this.readAllUserInfo();
-    this.observeRealTimeChanges();
+  mounted() {   
+    this.readAllUserInfo();
   },
-
-  computed: {
-    /*eslint no-constant-condition: "error"*/
+  computed: {   
     formTitle() {
       return this.userIndex === -1 ? "New Item" : "Edit Item";
     },
   },
 
-  watch: {
-    dialog(val) {
-      val || this.close();
-    },
-    dialogDelete(val) {
-      val || this.closeDelete();
-    },
-  },
-
   created() {
-    this.initialize();
-    // this.loaded = true;
+    this.initialize();    
   },
-
   methods: {
     openEditBox() {
       this.userIndex = -1; //in order to assisgn 'formTitle' = 'New Item'
@@ -217,11 +160,10 @@ export default {
       ];
     },
 
-    editItem(item) {
+    getItemToEdit(item) {
       this.userIndex = item.id;
       // console.log(this.userIndex);
       var docRef = fstore.collection("userInfo").doc(this.userIndex);
-
       docRef
         .get()
         .then((doc) => {
@@ -229,9 +171,7 @@ export default {
             this.user.fname = doc.data().fname; //In the component, I'm reusing the 'user' variable
             this.user.lname = doc.data().lname;
             this.user.age = doc.data().age;
-            this.dialog = true;
-            // this.loaded = false;
-            // this.updateDoc(item);
+            this.dialog = true;           
           } else {
             // doc.data() will be undefined in this case
             console.log("No such document!");
@@ -239,84 +179,36 @@ export default {
         })
         .catch((error) => {
           console.log("Error getting document:", error);
-        });
-
-      // this.editedItem = Object.assign({}, item)
+        });      
     },
 
     deleteItem(item) {
-      this.userIndex = item.id;
-      // this.editedItem = Object.assign({}, item);
-
+      this.userIndex = item.id; 
       this.dialogDelete = true;
     },
 
-    deleteItemConfirm() {
-      // this.users.splice(this.userIndex, 1);
-      var docID = this.userIndex;
-      // console.log(docID)
+    deleteItemConfirm() {      
+      var docID = this.userIndex;      
       fstore
         .collection("userInfo")
         .doc(docID)
         .delete()
         .then(() => {
-          console.log("Document successfully deleted!");
-          //  this.readData();
-           this.usersArray.splice(docID, 1);
+          console.log("Document successfully deleted!");                   
+           this.closeDelete();
         })
         .catch((error) => {
           console.error("Error removing document: ", error);
-        });
-
-      this.closeDelete();
+        });      
     },
 
     close() {
-      this.dialog = false;
-      this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem);
-        this.userIndex = -1;
-      });
+      this.dialog = false;    
     },
-
     closeDelete() {
-      this.dialogDelete = false;
-      this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem);
-        this.userIndex = -1;
-      });
+      this.dialogDelete = false;   
     },
-
-    observeRealTimeChanges() {
-      console.log("Changes between snapshots");
-      fstore.collection("userInfo").onSnapshot((snapShot) => {
-        snapShot.docChanges().forEach(
-          (change) => {
-            if (change.type === "added") {
-              //some kind of metadata --> confirmation, what is being added:
-              //  console.log("New city: ", change.doc.data());
-              // this.usersArray.push(change.doc.data());
-              // this.loaded;
-              this.readAllUserInfo();
-            }
-            if (change.type === "modified") {
-              this.readAllUserInfo();
-            }
-            if (change.type === "removed") {
-              this.readAllUserInfo();
-             
-            //  console.log("Removed doc: ", change.doc.data());
-            }
-          },
-          (error) => {
-            console.log("Error in listening ", error);
-          }
-        );
-      });
-    },
-
-    updateDoc() {
-      console.log(this.user);
+    updateDoc() {     
       fstore
         .collection("userInfo")
         .doc(this.userIndex)
@@ -326,13 +218,10 @@ export default {
           age: this.user.age,
         })
         .then(() => {
-          console.log("Document successfully updated!");
-          // this.readData();
-          // this.$set(this.usersArray,this.userIndex,this.user);
+          console.log("Document successfully updated!");        
           this.dialog = false;
         })
-        .catch((error) => {
-          // The document probably doesn't exist.
+        .catch((error) => {         
           console.error("Error updating document: ", error);
         });
     },
@@ -358,20 +247,15 @@ export default {
     },
 
     readAllUserInfo() {
-      //real-time listener
-
-     //  this.usersArray = []; is NOT reactive, need to use Vue.set() to make it reactive
-    // this.$set(this.usersArray,[]);
-    this.usersArray.splice(0, this.usersArray.length) // this also re-loades the page, not good
-    // this.usersArray.$set(0,[]);
+      //real-time listener     
       fstore
         .collection("userInfo")
-        .get()
-        .then((querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-            this.usersArray.push(doc.data()); //this could be modified -- 
-          });
+        .onSnapshot((querySnapshot) => {
+           var tempUsersArray = []
+          querySnapshot.forEach((doc) => {            
+            tempUsersArray.push(doc.data());                    
+          });          
+          this.$set(this.usersArray,1,tempUsersArray)
         });
     },
   },
